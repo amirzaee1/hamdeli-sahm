@@ -1,0 +1,106 @@
+{
+ "tempo": 1.1259,
+ "total": 80,
+ "sections": {
+  "c0": {
+   "start": 0.25,
+   "end": 9.629,
+   "keys": {
+    "thing": 0.428,
+    "eyes": 2.666,
+    "touch": 4.371,
+    "never": 5.792,
+    "notSeen": 6.787,
+    "end": 7.782,
+    "see": 8.883
+   }
+  },
+  "s1": {
+   "start": 10.229,
+   "end": 23.162,
+   "keys": {
+    "clock": 10.229,
+    "phone": 12.823,
+    "vibrate": 13.167,
+    "msg": 13.96,
+    "quote": 15.292,
+    "great": 17.477,
+    "thanks": 18.294,
+    "smile": 19.396,
+    "but": 20.604,
+    "thisMsg": 21.314,
+    "wrong": 22.274
+   }
+  },
+  "s2": {
+   "start": 23.662,
+   "end": 40.36,
+   "keys": {
+    "look": 23.662,
+    "notSeller": 25.367,
+    "butBuy": 26.93,
+    "sold": 29.879,
+    "profit": 31.099,
+    "happy": 32.426,
+    "three": 33.681,
+    "one": 35.623,
+    "empty": 36.547,
+    "thatOne": 38.078,
+    "you": 39.365
+   }
+  },
+  "sq": {
+   "start": 41.66,
+   "end": 42.939,
+   "keys": {
+    "share": 41.66
+   }
+  },
+  "s3": {
+   "start": 43.939,
+   "end": 62.201,
+   "keys": {
+    "answer": 43.939,
+    "closer": 45.36,
+    "near": 47.385,
+    "econ": 48.345,
+    "exp": 50.441,
+    "trust": 51.187,
+    "trust2": 52.395,
+    "choice": 53.177,
+    "choice2": 54.029,
+    "partner": 54.527,
+    "rule": 55.557,
+    "share": 57.582,
+    "noPromise": 59.501,
+    "noGuarantee": 60.886
+   }
+  },
+  "s4": {
+   "start": 62.651,
+   "end": 70.402,
+   "keys": {
+    "remember": 62.651,
+    "everyday": 64.149,
+    "product": 65.926,
+    "bag": 66.778,
+    "trustP": 67.844,
+    "people": 68.839
+   }
+  },
+  "s5": {
+   "start": 70.852,
+   "end": 79.45,
+   "keys": {
+    "rest": 70.852,
+    "film": 72.131,
+    "job": 73.197,
+    "work": 74.192,
+    "life": 74.618,
+    "conv": 75.968,
+    "see": 77.531,
+    "share": 78.384
+   }
+  }
+ }
+}
