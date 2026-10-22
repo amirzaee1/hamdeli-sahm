@@ -5,6 +5,10 @@
 // invitation → form → success. On Android the phone vibrates with the film's heartbeat.
 // Same API and fields as the previous page.
 const API = 'https://sahm-hamdeli.amirzaee123.chatgpt.site/api/requests';
+// NEXA first: the answer reaches «پاسخ‌های لینک‌ها» of the member whose NEXA code is in ?ref=.
+// While NEXA's switch is off (404), unreachable (network/timeout) or down (5xx), the form falls back to API above.
+const NEXA_API = 'https://nexa-net.app/external-leads/hamdeli-sahm';
+const NEXA_REF = /^NEXA-\d{4}(?:-\d{2}){5}-[2-9A-HJ-NP-Z]{8}$/i;
 const TOTAL = 80;
 const PARTS = [
   { src: 'media/p1.mp4', start: 0 },
@@ -22,7 +26,7 @@ const $ = (s) => document.querySelector(s);
 const vids = [$('#vA'), $('#vB')];
 const stage = $('#stage'), shade = $('#shade'), mini = $('#mini'), bar = $('#progress');
 const voice = $('#voice'), loading = $('#loading'), pausedHint = $('#paused'), muteBtn = $('#mute');
-let phase = 'intro', part = 0, cur = 0, muted = false, busy = false, consent = false, count = 3;
+let phase = 'intro', part = 0, cur = 0, muted = false, busy = false, consent = false, count = 3, counted = false;
 let requestId = '', requestPayload = '', reference = '', lastT = 0, swappedFrom = -1;
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -201,7 +205,7 @@ function start() {
   playPart(0);
 }
 function answer() {
-  $('#go').disabled = true; $('#range').disabled = true;
+  $('#go').disabled = true; $('#range').disabled = true; counted = true;
   prime(other());
   const n = count >= 50 ? 'بیشتر از ۵۰' : fa(count);
   $('#verdict').innerHTML = `<b>یعنی روی <i>${n}</i> خرید اثر گذاشتی.</b><span>و سهمت؟ ۰</span>`;
@@ -269,6 +273,30 @@ function normalize(s) {
   return s.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
     .replace(/\D/g, '').replace(/^0098/, '0').replace(/^98/, '0');
 }
+// the member's NEXA code from this page's own ?ref= (anything else is ignored)
+function nexaRef() {
+  try { const r = (new URLSearchParams(location.search).get('ref') || '').trim(); return NEXA_REF.test(r) ? r : ''; } catch (e) { return ''; }
+}
+// {ok, reference} · {fallback: true} when NEXA is off/unreachable/down · {error} = a Persian message (no fallback)
+async function sendNexa(body) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(NEXA_API, {
+      method: 'POST', mode: 'cors', credentials: 'omit', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+      body: JSON.stringify(body),
+    });
+    if (res.status === 404 || res.status >= 500) return { fallback: true };
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data.ok ? { ok: true, reference: String(data.reference || '') } : { fallback: true };
+    if (data.error === 'consent_required') return { error: 'برای ثبت، تیک موافقت رو بزن.' };
+    if (res.status === 400 || res.status === 422) return { error: 'نام و شماره موبایل رو یه بار دیگه بررسی کن.' };
+    if (res.status === 429) return { error: 'چند بار پشت‌سرهم تلاش شد؛ چند دقیقه دیگه دوباره امتحان کن.' };
+    if (res.status === 409) return { error: 'این درخواست همین الان در حال ثبته؛ چند لحظه دیگه دوباره امتحان کن.' };
+    return { error: 'ثبت انجام نشد؛ دوباره تلاش کن.' };
+  } catch (x) {
+    return { fallback: true };
+  } finally { clearTimeout(timer); }
+}
 async function submitForm(e) {
   e.preventDefault();
   if (busy || !consent) return;
@@ -277,20 +305,28 @@ async function submitForm(e) {
   if (name.length < 2) { err.textContent = 'نامت رو کامل بنویس.'; $('#name').focus(); return; }
   if (!/^09\d{9}$/.test(mobile)) { err.textContent = 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.'; $('#mobile').focus(); return; }
   busy = true; err.textContent = ''; submit.disabled = true; submit.textContent = 'در حال ثبت…'; stopVoice();
-  const payload = JSON.stringify({ name, mobile, consent: true });
+  const summaries = counted ? [{ title: 'به چند نفر پیشنهاد دادی؟', priority: count >= 50 ? '۵۰+ نفر' : `${fa(count)} نفر` }] : [];
+  const payload = JSON.stringify({ name, mobile, consent: true, summaries });
   if (payload !== requestPayload) { requestId = makeRequestId(); requestPayload = payload; }
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
+  let timer = 0;
   try {
-    const res = await fetch(API, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-      body: JSON.stringify({ id: requestId, name, mobile, consent: true, website: $('#website').value }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data.error || 'ثبت انجام نشد؛ دوباره تلاش کن.');
-    reference = String(data.reference || requestId.slice(0, 8));
+    const ref = nexaRef();
+    const nexa = await sendNexa({ ...(ref ? { referralCode: ref } : {}), id: requestId, name, mobile, consent: true, website: $('#website').value, summaries });
+    if (nexa.error) throw new Error(nexa.error);
+    if (nexa.ok) reference = nexa.reference || requestId.slice(0, 8);
+    else {
+      const controller = new AbortController(); timer = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ id: requestId, name, mobile, consent: true, website: $('#website').value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'ثبت انجام نشد؛ دوباره تلاش کن.');
+      reference = String(data.reference || requestId.slice(0, 8));
+    }
     phase = 'success'; render(); say('ok'); buzz([60, 80, 60]);
   } catch (x) {
-    err.textContent = x.name === 'AbortError' ? 'ارتباط طول کشید؛ دوباره تلاش کن.' : x.message || 'ارتباط برقرار نشد؛ دوباره تلاش کن.';
+    err.textContent = x.name === 'AbortError' ? 'ارتباط طول کشید؛ دوباره تلاش کن.' : x instanceof TypeError ? 'ارتباط برقرار نشد؛ دوباره تلاش کن.' : x.message || 'ارتباط برقرار نشد؛ دوباره تلاش کن.';
     submit.disabled = !consent; submit.textContent = 'ثبت درخواست مشاوره';
   } finally { clearTimeout(timer); busy = false; }
 }
