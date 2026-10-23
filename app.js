@@ -8,7 +8,7 @@ const API = 'https://sahm-hamdeli.amirzaee123.chatgpt.site/api/requests';
 // NEXA first: the answer reaches «پاسخ‌های لینک‌ها» of the member whose NEXA code is in ?ref=.
 // While NEXA's switch is off (404), unreachable (network/timeout) or down (5xx), the form falls back to API above.
 const NEXA_API = 'https://nexa-net.app/external-leads/hamdeli-sahm';
-const NEXA_REF = /^NEXA-\d{4}(?:-\d{2}){5}-[2-9A-HJ-NP-Z]{8}$/i;
+const NEXA_REF = /^NEXA-\d{4}(?:-\d{2}){5}-[2-9A-HJ-NP-Z]{8}$/i, NEXA_LINK_REF = /^nxl-[A-Za-z0-9_-]{43}$/;
 const TOTAL = 80;
 const PARTS = [
   { src: 'media/p1.mp4', start: 0 },
@@ -275,7 +275,7 @@ function normalize(s) {
 }
 // the member's NEXA code from this page's own ?ref= (anything else is ignored)
 function nexaRef() {
-  try { const r = (new URLSearchParams(location.search).get('ref') || '').trim(); return NEXA_REF.test(r) ? r : ''; } catch (e) { return ''; }
+  try { const r = (new URLSearchParams(location.search).get('ref') || '').trim(); return NEXA_REF.test(r) || NEXA_LINK_REF.test(r) ? r : ''; } catch (e) { return ''; }
 }
 // {ok, reference} · {fallback: true} when NEXA is off/unreachable/down · {error} = a Persian message (no fallback)
 async function sendNexa(body) {
